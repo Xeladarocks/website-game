@@ -8,7 +8,7 @@ socket.emit('new player');
 // eslint-disable-next-line no-undef
 var app = new PIXI.Application(1920, 1080, {
     //transparent: true,
-    backgroundColor: 0x000000,
+    backgroundColor: 0xffffff, //#ffffff
     antialias: true
 });
 
@@ -27,7 +27,8 @@ var movement = {
     left: false,
     right: false,
 }
-var client;
+var serverClient;
+var moving = false;
 
 // eslint-disable-next-line no-undef
 var graph = new PIXI.Graphics();
@@ -38,61 +39,43 @@ var others = new PIXI.Graphics();
 app.stage.addChild(others); //other players
 
 // eslint-disable-next-line no-undef
-var circle = new PIXI.Graphics();
-app.stage.addChild(circle); // client
+var client = new PIXI.Graphics();
+app.stage.addChild(client); // serverserverserverClient
 
-circle.lineStyle(0);
-circle.beginFill(0x109900, 1); //#109900
-circle.drawCircle(myContainer.offsetWidth / 2, myContainer.offsetHeight / 2, 60);
-circle.endFill();
-
-drawGrid(client);
-
-function checkTrue(m) {
-    if(m.up === true){
-        return true;
-    } else 
-    if(m.down === true){
-        return true;
-    } else
-    if(m.left === true){
-        return true;
-    } else
-    if(m.right === true){
-        return true;
-    }
-    return false;
-}
+client.lineStyle(0);
+client.beginFill(0x109900, 1); //#109900
+client.drawCircle(myContainer.offsetWidth / 2, myContainer.offsetHeight / 2, 60);
+client.endFill();
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
 window.onresize = function(){ // recenter on window resize
-    circle.clear();
-    circle.lineStyle(0);
-    circle.beginFill(0x109900, 1); //#109900
-    circle.drawCircle(myContainer.offsetWidth / 2, myContainer.offsetHeight / 2, 60);
-    circle.endFill();
+    client.clear();
+    client.lineStyle(0);
+    client.beginFill(0x109900, 1); //#109900
+    client.drawCircle(myContainer.offsetWidth / 2, myContainer.offsetHeight / 2, 60);
+    client.endFill();
 };
 
-function drawGrid(client) {
+function drawGrid(cl) {
     try {
-        if(typeof client.x == 'undefined'){
+        if(typeof cl.x == 'undefined'){
             return console.log("Undefined");
         }
     } catch {
         return console.log("Error loading player!")
     }
-    var gridSize = 50;    // define the space between each line
-    var x = -myContainer.offsetWidth - client.x;  // x start point of the field
-    var y = -myContainer.offsetHeight - client.y  // y start point of the field
-    var width = 2 * myContainer.offsetWidth;
-    var height = 2 * myContainer.offsetHeight;
+    var gridSize = 100;    // define the space between each line
+    var x = -myContainer.offsetWidth - cl.x;  // x start point of the field
+    var y = -myContainer.offsetHeight - cl.y  // y start point of the field
+    var width = 3 * myContainer.offsetWidth;
+    var height = 3 * myContainer.offsetHeight;
 
     graph.clear();
     graph.lineStyle(1);
-    graph.lineStyle(1, 0xccc); //#ccc
+    graph.lineStyle(1, 0xCCC); //#CCC
     for(var i = 0; i * gridSize < height; i++) { // draw the horizontal lines
        graph.moveTo(x, i * gridSize + y);
        graph.lineTo(x + width, i * gridSize + y);
@@ -103,14 +86,19 @@ function drawGrid(client) {
     }
 }
 
+function predict(serverClient) {
+
+}
+
 app.ticker.add(function () { // animation loop
-    if(checkTrue(movement) === true) {
-        drawGrid();
+    if(moving === true) {
         socket.emit("movement", movement);
+        predict(serverClient);
     }
 });
 
 myContainer.addEventListener('keydown', function (event) {
+    moving = true;
     switch(event.keyCode) {
         case 65: // A
             movement.left = true;
@@ -127,6 +115,7 @@ myContainer.addEventListener('keydown', function (event) {
     }
 });
 myContainer.addEventListener('keyup', function (event) {
+    moving = false;
     switch(event.keyCode) {
         case 65: // A
             movement.left = false;
@@ -145,9 +134,9 @@ myContainer.addEventListener('keyup', function (event) {
 
 socket.on('state', function (players) {
     others.clear();
-    client = players[socket.id];
+    serverClient = players[socket.id];
     try {
-        if(typeof client.x == 'undefined'){
+        if(typeof serverClient.x == 'undefined'){
             return console.log("Undefined");
         }
     } catch {
@@ -158,7 +147,8 @@ socket.on('state', function (players) {
         var current = players[id];
         others.lineStyle(0);
         others.beginFill(0x1099bb, 1); //#1099bb
-        others.drawCircle((current.x - client.x) + myContainer.offsetWidth / 2, (current.y - client.y) + myContainer.offsetHeight / 2, 60);
+        others.drawCircle((current.x - serverClient.x) + myContainer.offsetWidth / 2, (current.y - serverClient.y) + myContainer.offsetHeight / 2, 60);
         others.endFill();
     }
+    drawGrid(serverClient);
 });

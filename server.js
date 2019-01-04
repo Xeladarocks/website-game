@@ -65,5 +65,5 @@ io.on('connection', function (socket) {
 
     setInterval(function () {
         io.sockets.emit('state', players);
-    }, 1000 / 30);
+    }, 1000 / 60);
 });
